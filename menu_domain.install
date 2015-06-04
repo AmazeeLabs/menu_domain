@@ -1,0 +1,13 @@
+<?php
+
+/**
+ * @file
+ * Install functions.
+ */
+
+/**
+ * Implements hook_uninstall().
+ */
+function menu_domain_uninstall() {
+  variable_del('menu_domain_base_menu_names');
+}

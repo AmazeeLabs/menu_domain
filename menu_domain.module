@@ -1,0 +1,63 @@
+<?php
+
+/**
+ * @file
+ * Implements menu-by-domain system.
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function menu_domain_menu() {
+  $items = array();
+
+  $items['admin/structure/menu/menu-domain'] = array(
+    'title' => 'Menu Domain',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('menu_domain_admin_form'),
+    'access arguments' => array('administer menu'),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 5,
+    'file' => 'menu_domain.admin.inc',
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_ctools_plugin_directory().
+ */
+function menu_domain_ctools_plugin_directory($module, $plugin) {
+  if ($module == 'ctools' && !empty($plugin)) {
+    return "plugins/$plugin";
+  }
+  return NULL;
+}
+
+/**
+ * Returns menu name basing on the given base menu name and domain.
+ *
+ * Selection rules are described in the Instructions section of the admin form.
+ * @see menu_domain_admin_form()
+ *
+ * @param string $base_menu_name
+ *   Menu machine name.
+ * @param array $domain
+ *   The domain array as returned by domain_load().
+ *
+ * @return string|null
+ *   Menu machine name, or NULL.
+ */
+function _menu_domain_get_menu_name($base_menu_name, $domain) {
+  if ($domain['is_default']) {
+    return $base_menu_name;
+  }
+  @list($prefix) = explode('.', $domain['subdomain']);
+  $menus = menu_get_menus();
+  foreach (array("$base_menu_name-$prefix", "menu-$base_menu_name-$prefix") as $name) {
+    if (isset($menus[$name])) {
+      return $name;
+    }
+  }
+  return NULL;
+}
