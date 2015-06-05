@@ -25,7 +25,7 @@ Footer menu      menu-footer-menu      Global          example.com
 Footer menu CH   menu-footer-menu-<b>ch</b>   Switzerland     <b>ch</b>.example.com
 Footer menu FR   menu-footer-menu-<b>fr</b>   France          <b>fr</b>.example.com</pre>
 To make this work, you need to select "Main menu" and "Footer menu" as the base menus. After that you\'ll find the content type plugins in the Menu Domain group.<br />
-The selection will happen automatically basing on the menu machine name suffixes and the domain prefixes (marked as bold in the example table).'),
+A pane (created from a Menu Domain content type plugin) will select a menu automatically basing on the menu machine name suffixes and the domain prefixes (marked as bold in the example table). The base menus are used for the default domain.'),
     ),
   );
 
