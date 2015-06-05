@@ -53,17 +53,37 @@ The selection will happen automatically basing on the menu machine name suffixes
     $domains = domain_domains();
     $header = array();
     $header[] = '';
-    foreach ($base_menu_names as $menu_name_base) {
-      $header[] = $menu_name_base;
+    foreach ($base_menu_names as $base_menu_name) {
+      $header[] = $base_menu_name;
     }
     $rows = array();
     foreach ($domains as $domain) {
       $row = array();
-      @list($prefix) = explode('.', $domain['subdomain']);
-      $row[] = $domain['sitename'] . ' (' . ($domain['is_default'] ? t('default') : $prefix) . ')';
-      foreach ($base_menu_names as $menu_name_base) {
-        $menu_name = _menu_domain_get_menu_name($menu_name_base, $domain);
-        $row[] = $menu_name ? "{$menus[$menu_name]} ($menu_name)" : '';
+      @list($domain_prefix) = explode('.', $domain['subdomain']);
+      $row[] = $domain['sitename'] . ' (' . ($domain['is_default'] ? t('default') : $domain_prefix) . ')';
+      foreach ($base_menu_names as $base_menu_name) {
+        $menu_name = _menu_domain_get_menu_name($base_menu_name, $domain);
+        if ($menu_name) {
+          $row[] = l($menus[$menu_name], "admin/structure/menu/manage/$menu_name") . " ($menu_name)";
+        }
+        else {
+          if (module_exists('menu_clone')) {
+            $links = array();
+            foreach ($domains as $_domain) {
+              $_menu_name = _menu_domain_get_menu_name($base_menu_name, $_domain);
+              if ($_menu_name) {
+                $links[] = array(
+                  'title' => t('Clone from "@menu"', array('@menu' => $menus[$_menu_name])),
+                  'href' => "admin/structure/menu/menu-domain/quick-clone/$_menu_name/$domain_prefix",
+                );
+              }
+            }
+            $row[] = theme('ctools_dropdown', array('title' => t('Quick clone'), 'links' => $links));
+          }
+          else {
+            $row[] = '';
+          }
+        }
       }
       $rows[] = $row;
     }
@@ -87,4 +107,56 @@ The selection will happen automatically basing on the menu machine name suffixes
 function menu_domain_admin_form_submit(&$form, &$form_state) {
   variable_set('menu_domain_base_menu_names', array_filter($form_state['values']['base_menu_names']));
   drupal_set_message(t('The configuration options have been saved.'));
+}
+
+/**
+ * Clones a menu.
+ *
+ * @param string $source_menu_name
+ *   The source menu machine name.
+ * @param string $target_domain_prefix
+ *   The target domain prefix which will be used as a target menu suffix.
+ */
+function menu_domain_quick_clone($source_menu_name, $target_domain_prefix) {
+  $menus = menu_get_menus();
+
+  // Prepare the base name/title for the target menu.
+  $source_menu_title = $menus[$source_menu_name];
+  $source_menu_name_parts = explode('-', $source_menu_name);
+  $source_menu_name_suffix = array_pop($source_menu_name_parts);
+  $source_menu_title_parts = explode(' ', $source_menu_title);
+  $source_menu_title_suffix = array_pop($source_menu_title_parts);
+  if (strtoupper($source_menu_name_suffix) == $source_menu_title_suffix) {
+    $base_menu_name = implode('-', $source_menu_name_parts);
+    $base_menu_title = implode(' ', $source_menu_title_parts);
+  }
+  else {
+    $base_menu_name = $source_menu_name;
+    $base_menu_title = $source_menu_title;
+  }
+  if (strpos($base_menu_name, 'menu-') === 0) {
+    $base_menu_name = substr($base_menu_name, 5);
+  }
+  $target_menu_name = $base_menu_name . '-' . $target_domain_prefix;
+  $target_menu_title = $base_menu_title . ' ' . strtoupper($target_domain_prefix);
+
+  // Prepare the clone form (from menu_clone module).
+  module_load_include('admin.inc', 'menu_clone', 'includes/menu_clone');
+  $form_state = array();
+  $form_state['build_info']['args'][] = menu_clone_load($source_menu_name);
+  $form = drupal_build_form('menu_clone_clone_form', $form_state);
+  form_get_cache($form['#build_id'], $form_state);
+
+  // Setup values and submit the form.
+  $form_state['values']['menu_name'] = $target_menu_name;
+  $form_state['values']['title'] = $target_menu_title;
+  $form_state['values']['edit_menu']['clone_localization'] = 1;
+  $form_state['input'] = $form_state['values'];
+  menu_clone_clone_form_submit($form, $form_state);
+
+  drupal_set_message(t('The !target_menu has been successfully cloned from the !source_menu.', array(
+    '!target_menu' => l($target_menu_title, "admin/structure/menu/manage/menu-$target_menu_name"),
+    '!source_menu' => l($source_menu_title, "admin/structure/menu/manage/$source_menu_name"),
+  )));
+  drupal_goto('admin/structure/menu/menu-domain');
 }

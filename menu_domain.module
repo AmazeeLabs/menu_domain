@@ -17,9 +17,18 @@ function menu_domain_menu() {
     'page arguments' => array('menu_domain_admin_form'),
     'access arguments' => array('administer menu'),
     'type' => MENU_LOCAL_TASK,
-    'weight' => 5,
     'file' => 'menu_domain.admin.inc',
   );
+  if (module_exists('menu_clone')) {
+    $items['admin/structure/menu/menu-domain/quick-clone/%/%'] = array(
+      'title' => 'Menu Domain',
+      'page callback' => 'menu_domain_quick_clone',
+      'page arguments' => array(5, 6),
+      'access arguments' => array('administer menu'),
+      'type' => MENU_CALLBACK,
+      'file' => 'menu_domain.admin.inc',
+    );
+  }
 
   return $items;
 }
